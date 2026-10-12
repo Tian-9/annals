@@ -63,10 +63,14 @@ export class EventLog<E extends AnnalsEvent = AnnalsEvent> {
     return this.events.filter((e): e is E & { type: T } => e.type === type);
   }
 
-  /** Replace the whole log, e.g. after loading from storage. Re-sequences by current order. */
+  /**
+   * Replace the whole log, e.g. after loading from storage. Stored `seq`
+   * values are kept (gaps left by retractions stay gaps) so new events never
+   * collide with old ones; events are sorted by seq.
+   */
   load(events: readonly E[]): void {
-    this.events = events.map((e, i) => ({ ...e, seq: i + 1 }));
-    this.nextSeq = this.events.length + 1;
+    this.events = events.slice().sort((a, b) => a.seq - b.seq);
+    this.nextSeq = this.events.reduce((m, e) => Math.max(m, e.seq), 0) + 1;
     this.ver++;
   }
 

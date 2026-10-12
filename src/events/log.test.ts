@@ -66,4 +66,16 @@ describe('EventLog', () => {
     back.append({ at: 3, type: 'summary', payload: { text: 'x' } });
     expect(back.all().at(-1)?.seq).toBe(3);
   });
+
+  it('load keeps stored seq so appends after a retraction never collide', () => {
+    const log = new EventLog();
+    log.append({ at: 1, type: 'x', payload: 1 });
+    log.append({ at: 2, type: 'x', source: 's', payload: 2 });
+    log.append({ at: 3, type: 'x', payload: 3 });
+    log.retract('s');
+    const back = new EventLog();
+    back.load(log.all().reverse());
+    expect(back.all().map((e) => e.seq)).toEqual([1, 3]);
+    expect(back.append({ at: 4, type: 'x', payload: 4 }).seq).toBe(4);
+  });
 });

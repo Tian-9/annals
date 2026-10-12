@@ -138,8 +138,8 @@ Retrieval runs in code before the request, in milliseconds, on every message, wi
 
 ## 7. Roadmap
 
-- **v0.1 primitives**: `EventLog`, `fold` / `latest`, `SparseIndex`, tokenizer, in-memory storage, JSONL import/export. Current state of this repository.
-- **v0.2 adapters**: Dexie `EventStore` / `BlobStore`; a `rebuild()` helper.
+- **v0.1 primitives**: `EventLog`, `fold` / `latest`, `SparseIndex`, tokenizer, in-memory storage, JSONL import/export. Done.
+- **v0.2 adapters**: `annals/dexie` `EventStore` / `BlobStore`; `rebuildIndex()`, `bagFromText()`, `parseBag()`; the `annals/airp` state patch contract, view and block rendering. Done.
 - **v0.3 AIRP profile**: state event conventions, state block rendering, relative-time parsing, as a separate entry or example; wired into pocketverse to replace MiniSearch and `state_update`.
 - **v1 semantic lift**: bag extraction in the pipeline, tier mapping configuration, query log.
 - **v2 (deferred)**: information asymmetry (scene "present" tags + per-character knows lists, later per-character context filtering), RRF hybrid retrieval, local dense embeddings, query-log tuning.

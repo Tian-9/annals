@@ -55,11 +55,14 @@ log.retract('msg-41');
 | `fold` / `latest` | 归约日志；每个键取最新一条 |
 | `SparseIndex` | term → doc → 档位；`search` 支持档位权重、idf、每文档 boost；`vocabulary()`；可序列化 |
 | `tokenize` | NFKC + `Intl.Segmenter` 分词 + CJK 二元组 + 停用词，写入端和查询端共用 |
-| `MemoryEventStore` / `MemoryBlobStore` | 测试和 Node 用的适配器；IndexedDB 适配器是单独入口（计划中） |
+| `bagFromText` / `parseBag` / `rebuildIndex` | 纯词法基线词袋、模型输出的防呆解析、纯代码重建索引 |
+| `MemoryEventStore` / `MemoryBlobStore` | 测试和 Node 用的适配器 |
+| `annals/dexie` | `DexieEventStore` / `DexieBlobStore`：带作用域的 IndexedDB 适配器，`dexie` 是可选 peer 依赖 |
+| `annals/airp` | 角色扮演画像：`parsePatches`、`stateView`、`diffPatches`、`renderStateLines`，以及 patch 和词袋的 JSON Schema 片段 |
 
 ## 状态
 
-v0.1：原语和测试。路线图见[设计文档](docs/DESIGN.zh.md#7-路线图)。第一个用户是一个 AI 角色扮演 PWA，设计文档第 6 节写了它怎么用这些原语。
+v0.2：原语、Dexie 适配器、AIRP 画像，都有测试。路线图见[设计文档](docs/DESIGN.zh.md#7-路线图)。第一个用户是一个 AI 角色扮演 PWA，设计文档第 6 节写了它怎么用这些原语。
 
 ## 许可
 

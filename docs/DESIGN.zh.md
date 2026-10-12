@@ -138,8 +138,8 @@ interface AnnalsEvent<T extends string = string, P = unknown> {
 
 ## 7. 路线图
 
-- **v0.1 原语**：`EventLog`、`fold` / `latest`、`SparseIndex`、分词器、内存存储、JSONL 导入导出。本仓库当前状态。
-- **v0.2 适配器**：Dexie 的 `EventStore` / `BlobStore`；`rebuild()` 辅助函数。
+- **v0.1 原语**：`EventLog`、`fold` / `latest`、`SparseIndex`、分词器、内存存储、JSONL 导入导出。已完成。
+- **v0.2 适配器**：`annals/dexie` 的 `EventStore` / `BlobStore`；`rebuildIndex()`、`bagFromText()`、`parseBag()`；`annals/airp` 的状态 patch 合同、视图、状态块渲染。已完成。
 - **v0.3 AIRP 画像**：状态事件约定、状态块渲染、相对时间解析，作为独立入口或示例，接入 pocketverse 替换 MiniSearch 与 `state_update`。
 - **v1 语义点亮**：词袋抽取接入流水线，三档映射配置，查询日志。
 - **v2（暂缓）**：信息不对称（场景"在场者"标签 + 各角色 knows 清单，进阶为按角色视角过滤上下文）、RRF 混合检索、本地 dense embedding、查询日志调优。

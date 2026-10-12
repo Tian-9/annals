@@ -55,11 +55,14 @@ The same snippet lives in `src/quickstart.test.ts`. Export is `log.toJSONL()`; i
 | `fold` / `latest` | reduce the log; last-write-wins view per key |
 | `SparseIndex` | term → doc → tier; `search` with tier weights, idf, per-doc boost; `vocabulary()`; serialize |
 | `tokenize` | NFKC + `Intl.Segmenter` words + CJK bigrams + stopwords, shared by write and query sides |
-| `MemoryEventStore` / `MemoryBlobStore` | adapters for tests and Node; IndexedDB adapter is a separate entry (planned) |
+| `bagFromText` / `parseBag` / `rebuildIndex` | lexical baseline bags, coercion of untrusted model output, code-only index rebuild |
+| `MemoryEventStore` / `MemoryBlobStore` | adapters for tests and Node |
+| `annals/dexie` | `DexieEventStore` / `DexieBlobStore`: scoped IndexedDB adapters, `dexie` as an optional peer |
+| `annals/airp` | the roleplay profile: `parsePatches`, `stateView`, `diffPatches`, `renderStateLines`, JSON Schema fragments for patches and bags |
 
 ## Status
 
-v0.1: primitives and tests. See the [roadmap](docs/DESIGN.md#7-roadmap). The first consumer is an AI-roleplay PWA; the design doc's §6 shows how it uses these primitives.
+v0.2: primitives, Dexie adapters and the AIRP profile, all tested. See the [roadmap](docs/DESIGN.md#7-roadmap). The first consumer is an AI-roleplay PWA; the design doc's §6 shows how it uses these primitives.
 
 ## License
 

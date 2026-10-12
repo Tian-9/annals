@@ -12,3 +12,6 @@ export type { AnnalsEvent, EventInput } from './events/types.js';
 
 export { MemoryEventStore, MemoryBlobStore } from './storage/memory.js';
 export type { EventStore, BlobStore } from './storage/types.js';
+
+export { bagFromText, parseBag, rebuildIndex } from './sparse/bag.js';
+export type { BagLimits } from './sparse/bag.js';

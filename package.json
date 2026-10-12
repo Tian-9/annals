@@ -1,0 +1,44 @@
+{
+  "name": "annals",
+  "version": "0.0.0",
+  "description": "A local-first personal AI database: append-only events, code-folded state, LLM-tiered sparse retrieval. Zero dependencies, no model calls inside.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tian-9/annals"
+  },
+  "keywords": [
+    "local-first",
+    "event-sourcing",
+    "sparse-retrieval",
+    "llm",
+    "memory",
+    "browser",
+    "indexeddb"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "npm run check && npm run test",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

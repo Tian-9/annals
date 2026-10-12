@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EventLog } from '../events/log.js';
-import { diffPatches, parsePatches, renderStateLines, stateView, type StateSetEvent } from './index.js';
+import { diffPatches, liveEntries, parsePatches, renderStateLines, stateView, type StateSetEvent } from './index.js';
 
 describe('parsePatches', () => {
   it('coerces and dedupes by entity+attr, honours attr whitelist', () => {
@@ -34,6 +34,16 @@ describe('state view and block', () => {
     log.retract('m9');
     view = stateView(log.all());
     expect(renderStateLines(view)).toEqual(['当前 · 地点：夜市']);
+  });
+
+  it('an empty value clears a fact without deleting history', () => {
+    const log = new EventLog<StateSetEvent>();
+    log.append({ at: 1, type: 'state.set', payload: { entity: '猫', attr: '位置', value: '客栈A' } });
+    log.append({ at: 2, type: 'state.set', source: 'manual', payload: { entity: '猫', attr: '位置', value: '' } });
+    expect(renderStateLines(stateView(log.all()))).toEqual([]);
+    expect(liveEntries(stateView(log.all()))).toEqual([]);
+    log.retract('manual');
+    expect(renderStateLines(stateView(log.all()))).toEqual(['猫 · 位置：客栈A']);
   });
 
   it('evicts by write recency, keeping the freshest at the end', () => {

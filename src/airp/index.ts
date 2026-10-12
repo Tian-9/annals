@@ -107,6 +107,15 @@ export interface RenderOptions {
  */
 export function renderStateLines(view: ReadonlyMap<string, StateSetEvent>, opts: RenderOptions = {}): string[] {
   const limit = opts.limit ?? 20;
-  const entries = [...view.values()];
-  return entries.slice(Math.max(0, entries.length - limit)).map((e) => `${e.payload.entity} · ${e.payload.attr}：${e.payload.value}`);
+  return liveEntries(view).slice(-limit).map((e) => `${e.payload.entity} · ${e.payload.attr}：${e.payload.value}`);
+}
+
+/**
+ * Entries that are currently set, in write-recency order. An empty `value`
+ * means "cleared": the key stays in the log (so it can be rolled back) but is
+ * not rendered. That is how a manual edit removes a fact without deleting
+ * history.
+ */
+export function liveEntries(view: ReadonlyMap<string, StateSetEvent>): StateSetEvent[] {
+  return [...view.values()].filter((e) => e.payload.value !== '');
 }

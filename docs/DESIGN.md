@@ -67,6 +67,7 @@ Bags are written by the model and contain multi-character terms like "小鱼干"
 - **CJK bigrams**: always emitted over every contiguous CJK run, independent of the segmenter. "小鱼" and "鱼干" are the only bridge between the query "鱼干" and the bag term "小鱼干".
 - **Stopwords**: a small replaceable list. Model-written bags almost never contain them; user questions always do.
 - **Write-side expansion**: on `add`, each bag term is run through the tokenizer and its sub-tokens are indexed at the same tier (`expandTerms`, default on). A term that appears in two tiers keeps the stronger one.
+- **Single characters from expansion drop to the weakest tier**: a lone character cut out of a longer term ("加" from "加俩蛋") is too common to inherit the term's tier; it would let one character recall unrelated documents (measured: "加" alone scored 2.3). Demoted to hint, it can add to a real match but never make one. A single-character term the model wrote on purpose (core: ["猫"]) keeps its tier.
 
 Traditional/simplified folding is deferred; it needs a mapping table and will be added when it actually bites.
 

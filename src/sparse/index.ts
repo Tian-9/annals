@@ -50,6 +50,8 @@ export interface SerializedSparseIndex {
  * No term frequency, no document length, no learned anything. Score is a sum
  * over matched query terms of `weight(tier) * idf(term)`, then `boost(doc)`.
  */
+const HINT = tierCode('hint');
+
 export class SparseIndex {
   private readonly postings = new Map<string, Map<string, TierCode>>();
   private readonly docs = new Map<string, Set<string>>();
@@ -85,7 +87,11 @@ export class SparseIndex {
         this.put(id, term, code, terms);
         if (this.expand) {
           for (const sub of this.tok(term)) {
-            if (sub !== term) this.put(id, sub, code, terms);
+            if (sub === term) continue;
+            // A single character cut out of a longer term ("加" from "加俩蛋") is too common to
+            // carry the term's tier: on its own it would recall unrelated documents. Demote it to
+            // the weakest tier so it can only add to a real match, never make one.
+            this.put(id, sub, [...sub].length === 1 ? HINT : code, terms);
           }
         }
       }

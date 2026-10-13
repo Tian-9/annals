@@ -78,6 +78,20 @@ describe('SparseIndex', () => {
     expect(idx.vocabulary().find((v) => v.term === '客栈')?.df).toBe(2);
   });
 
+  it('single characters cut out of a longer term are demoted to hint', () => {
+    const idx = new SparseIndex();
+    idx.add('egg', { core: ['煎饼果子', '加俩蛋'] });
+    for (let i = 0; i < 8; i++) idx.add(`m${i}`, { core: [`别的${i}`] });
+    expect(idx.bagOf('egg')).toMatchObject({ 加俩蛋: 'core', 加俩: 'core', 加: 'hint', 蛋: 'hint' });
+    // one shared character no longer clears a threshold that a real term does
+    const [hit] = idx.search('再来一杯珍珠奶茶，加奶加茶');
+    expect(hit?.score).toBeLessThan(1);
+    expect(idx.search('明早的煎饼果子')[0]?.score).toBeGreaterThan(1);
+    // a single-character term written on purpose keeps its tier
+    idx.add('cat', { core: ['猫'] });
+    expect(idx.bagOf('cat')).toEqual({ 猫: 'core' });
+  });
+
   it('keeps the stronger tier when a term appears in two tiers', () => {
     const idx = new SparseIndex();
     idx.add('a', { core: ['猫'], hint: ['猫'] });

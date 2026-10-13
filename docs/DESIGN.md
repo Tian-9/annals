@@ -115,14 +115,33 @@ This section is an application-level convention, not part of the library. It liv
 - Activity eviction: an entity not mentioned within the last N events leaves the injected block (not by story days; one "three months later" would evict everything). A retrieval hit remounts it.
 - The injected state block targets < 150 tokens. The UI has a panel: automatic maintenance plus manual override; the user has the final word.
 
-### 6.3 Extraction pipeline (the only channel through which a model writes)
+### 6.3 The two channels through which a model writes
 
-- A separate asynchronous call, decoupled from the roleplay call. Low temperature, strict JSON, with the last N messages as context. Extraction is never piggybacked on the roleplay call.
+A model writes only through these two channels. Both produce events only, both carry a `source`, both can be retracted.
+
+**Channel one: the extraction pipeline (the main one).**
+
+- A separate call, decoupled from the roleplay call. Low temperature, strict JSON, with the last N messages as context. It looks back over a whole stretch after the fact, which is the calmest vantage point.
 - One call produces three things: scene summary, state patch array, three-tier bag. All three are calm extraction tasks and share one call.
 - Bag rules: ≤ 15 terms, ≤ 3 core; no free numbers; the prompt attaches `vocabulary()` and asks for reuse.
 - Code side: schema validation, retry on failure, every event carries `source = message id`.
 - Throttling: every N messages or on scene change. v1 waits synchronously; an async queue is a later optimization.
 - Layered summaries: messages → scene summary → chapter summary, each keeping Day anchors, relationship turns and unfulfilled promises. A summary covering several messages carries all their ids as sources; retracting any one re-extracts the window.
+
+**Channel two: in-conversation writes (decided 2026-10, so state keeps up during ordinary chat).**
+
+The model in the roleplay call may call a tool to write hard facts (in pocketverse, the `set` field of `state_update`). State patches only; no summaries, no bags. Constraints:
+
+- Changed entries only, `{entity, attr, value}`; never a whole-list rewrite. Code reads the old value from the view and drops patches equal to it.
+- `source` is the turn id, stamped on every reply message of that turn. Deleting a message or regenerating retracts by turn.
+- Manual edits and clears in the panel always win (a clear writes an empty value; history stays).
+
+Known risks to watch while testing:
+
+1. **Recording in the heat of the moment.** Jokes, lies and sarcasm may be taken at face value. A wrong fact does not go away by itself; it waits for a later overwrite or a manual edit.
+2. **Divided attention.** Acting and bookkeeping at once, the model may miss updates or log trivia, and the performance may suffer. This is the main reason the original design forbade writes from the roleplay call.
+3. **Cost and latency.** Each call adds a round trip on the chat-tier model; the state block sits in the cached prefix, so a change rewrites that part of the cache on the next turn.
+4. **The two channels disagreeing.** Extraction, looking back over the same stretch, may write an older value over one just recorded in chat. Current mitigation: the extraction prompt carries the current state lines and is told not to repeat them. If this bites, add a rule: extraction does not overwrite channel-two writes newer than its batch.
 
 ### 6.4 Prompt assembly
 
@@ -140,7 +159,7 @@ Retrieval runs in code before the request, in milliseconds, on every message, wi
 
 - **v0.1 primitives**: `EventLog`, `fold` / `latest`, `SparseIndex`, tokenizer, in-memory storage, JSONL import/export. Done.
 - **v0.2 adapters**: `annals/dexie` `EventStore` / `BlobStore`; `rebuildIndex()`, `bagFromText()`, `parseBag()`; the `annals/airp` state patch contract, view and block rendering. Done.
-- **v0.3 AIRP profile**: state event conventions, state block rendering, relative-time parsing, as a separate entry or example; wired into pocketverse to replace MiniSearch and `state_update`.
+- **v0.3 AIRP profile**: state event conventions, state block rendering, relative-time parsing, as a separate entry or example; wired into pocketverse to replace MiniSearch, with `state_update` turned into incremental hard-fact writes (6.3 channel two). Done.
 - **v1 semantic lift**: bag extraction in the pipeline, tier mapping configuration, query log.
 - **v2 (deferred)**: information asymmetry (scene "present" tags + per-character knows lists, later per-character context filtering), RRF hybrid retrieval, local dense embeddings, query-log tuning.
 

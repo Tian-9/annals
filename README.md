@@ -53,7 +53,7 @@ The same snippet lives in `src/quickstart.test.ts`. Export is `log.toJSONL()`; i
 |---|---|
 | `EventLog` | ordered events, `retract(source)`, JSONL in/out, `version` for cache keys |
 | `fold` / `latest` | reduce the log; last-write-wins view per key |
-| `SparseIndex` | term → doc → tier; `search` with tier weights, idf, per-doc boost; `vocabulary()`; serialize |
+| `SparseIndex` | term → doc → tier; `search` with tier weights, idf, per-doc boost, `maxDf` cap on common terms; `vocabulary()`; serialize |
 | `tokenize` | NFKC + `Intl.Segmenter` words + CJK bigrams + stopwords, shared by write and query sides |
 | `bagFromText` / `parseBag` / `rebuildIndex` | lexical baseline bags, coercion of untrusted model output, code-only index rebuild |
 | `MemoryEventStore` / `MemoryBlobStore` | adapters for tests and Node |

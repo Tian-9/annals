@@ -43,7 +43,8 @@
     "test": "vitest run",
     "lint": "npm run check && npm run test",
     "prepublishOnly": "npm run lint && npm run build",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "bench": "npm run build && node --expose-gc --max-old-space-size=4096 bench/sparse.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

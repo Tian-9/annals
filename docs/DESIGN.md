@@ -53,8 +53,9 @@ A `term → (docId → tierCode)` inverted index with a reverse map for removal.
 - **Score = Σ over matched query terms of weight(tier) × idf(term), then × boost(doc).** The weight table, the idf switch and boost are all query-time parameters; changing them never touches the index.
 - **idf** is `log(1 + N/df)`, where df is the posting list length. One line, not BM25. Without it, "cat" appearing in every summary carries no signal.
 - **boost** is an application-supplied per-document multiplier. The library knows nothing about time; recency decay is computed by the application on its own clock and passed in.
+- **maxDf** is an optional query-time cap on common terms (e.g. 0.3): query terms found in more than that fraction of documents are skipped. A term like the protagonist's name already has a low idf yet costs a walk over its whole posting list, which is what makes slow queries slow on large indexes. Off by default; if every matched query term is over the cap, none are skipped.
 - `vocabulary()` returns every term with its document frequency. The extraction prompt attaches this table and asks the model to reuse existing terms, so the vocabulary converges on the person's own language.
-- `serialize()` / `deserialize()` for Dexie or elsewhere; or `rebuild()` from bag events at startup. Small data, sub-second.
+- `serialize()` / `deserialize()` for Dexie or elsewhere; or `rebuild()` from bag events at startup. Synthetic benchmark (`npm run bench`): 10k bags is about 50MB of heap, under 1s to build and ~1ms p50 per query; 50k is about 230MB and 4s to build, where phone browsers start to struggle.
 
 ## 3. Tokenization: write side and query side must share one function
 
@@ -66,7 +67,7 @@ Bags are written by the model and contain multi-character terms like "小鱼干"
 - **Words**: `Intl.Segmenter` (word granularity) when available, otherwise a script-boundary fallback.
 - **CJK bigrams**: always emitted over every contiguous CJK run, independent of the segmenter. "小鱼" and "鱼干" are the only bridge between the query "鱼干" and the bag term "小鱼干".
 - **Stopwords**: a small replaceable list. Model-written bags almost never contain them; user questions always do.
-- **Write-side expansion**: on `add`, each bag term is run through the tokenizer and its sub-tokens are indexed at the same tier (`expandTerms`, default on). A term that appears in two tiers keeps the stronger one.
+- **Write-side expansion**: on `add`, each bag term is run through the tokenizer and its sub-tokens are indexed at the same tier (`expandTerms`, default on). A term that appears in two tiers keeps the stronger one. Bags reuse the vocabulary, so the same term gets expanded again and again; each index caches sub-tokens per term (capped at 50k entries, cleared wholesale when full), which makes builds 2.5–3× faster. This requires a pure tokenizer, which the write/query symmetry already does.
 
 Traditional/simplified folding is deferred; it needs a mapping table and will be added when it actually bites.
 

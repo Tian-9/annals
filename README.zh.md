@@ -53,7 +53,7 @@ log.retract('msg-41');
 |---|---|
 | `EventLog` | 有序事件，`retract(source)` 按来源撤回，JSONL 进出，`version` 做缓存键 |
 | `fold` / `latest` | 归约日志；每个键取最新一条 |
-| `SparseIndex` | term → doc → 档位；`search` 支持档位权重、idf、每文档 boost；`vocabulary()`；可序列化 |
+| `SparseIndex` | term → doc → 档位；`search` 支持档位权重、idf、每文档 boost、高频词门槛 `maxDf`；`vocabulary()`；可序列化 |
 | `tokenize` | NFKC + `Intl.Segmenter` 分词 + CJK 二元组 + 停用词，写入端和查询端共用 |
 | `bagFromText` / `parseBag` / `rebuildIndex` | 纯词法基线词袋、模型输出的防呆解析、纯代码重建索引 |
 | `MemoryEventStore` / `MemoryBlobStore` | 测试和 Node 用的适配器 |

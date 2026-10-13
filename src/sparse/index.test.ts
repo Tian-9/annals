@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { tokenize } from '../tokenize.js';
 import { SparseIndex } from './index.js';
 
 function sample(): SparseIndex {
@@ -103,6 +104,44 @@ describe('SparseIndex', () => {
     idx.add('x', { core: ['  '] });
     expect(idx.size).toBe(0);
     expect(idx.has('x')).toBe(false);
+  });
+
+  it('maxDf skips query terms that are in too many documents', () => {
+    const idx = new SparseIndex();
+    for (let i = 0; i < 10; i++) idx.add(`d${i}`, { core: ['黑炭', `事件${i}`] });
+    idx.add('x', { core: ['小鱼干'] });
+    // 黑炭 is in 10 of 11 docs: skipped, so only the d3 term scores.
+    const hits = idx.search(['黑炭', '事件3'], { maxDf: 0.3 });
+    expect(hits.map((h) => h.id)).toEqual(['d3']);
+    expect(hits[0]?.terms).toEqual(['事件3']);
+    // Default is off: every doc with 黑炭 still comes back.
+    expect(idx.search(['黑炭', '事件3'], { k: 20 }).length).toBe(10);
+  });
+
+  it('maxDf keeps all terms when every matched term is over the cap', () => {
+    const idx = new SparseIndex();
+    idx.add('a', { core: ['猫'] });
+    idx.add('b', { core: ['猫'] });
+    expect(idx.search(['猫', '不存在'], { maxDf: 0.3 }).map((h) => h.id)).toEqual(['a', 'b']);
+  });
+
+  it('sub-token cache does not change what gets indexed', () => {
+    let calls = 0;
+    const counting = (text: string) => {
+      calls++;
+      return tokenize(text);
+    };
+    const cached = new SparseIndex({ tokenize: counting });
+    const plain = new SparseIndex();
+    for (let i = 0; i < 50; i++) {
+      const bag = { core: ['小鱼干', `黑炭${i % 5}`], related: ['半夜偷吃'] };
+      cached.add(`d${i}`, bag);
+      plain.add(`d${i}`, bag);
+    }
+    // 7 distinct bag terms, each tokenized once.
+    expect(calls).toBe(7);
+    expect(cached.vocabulary()).toEqual(plain.vocabulary());
+    expect(cached.bagOf('d7')).toEqual(plain.bagOf('d7'));
   });
 
   it('honours k and minScore', () => {

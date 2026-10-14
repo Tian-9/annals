@@ -166,6 +166,11 @@ Retrieval runs in code before the request, in milliseconds, on every message, wi
 - **v1 semantic lift**: bag extraction in the pipeline, tier mapping configuration, query log.
 - **v2 (deferred)**: information asymmetry (scene "present" tags + per-character knows lists, later per-character context filtering), RRF hybrid retrieval, local dense embeddings, query-log tuning.
 
+**Backlog: only when retrieval is still not precise enough; first collect a reproduction in the acceptance cases**
+
+- **Part of speech**: verbs and adverbs in a query (去, 说, 买, 打算) are held off today by the stopword list and the "single characters cannot make a match" rule, which does not stop two-character verbs ("打算", "觉得"). Two ways: have the model tag part of speech in the bag at extraction time (nearly free) and query with noun-like terms only; or add an optional POS filter to the tokenizer (needs a dictionary, so a separate entry; the zero-dependency core stays). Start with the write side plus a small common-verb list on the query side, and reach for a dictionary only if that is not enough.
+- **BM25-style idf**: `log(1 + N/df)` still leaves log 2 ≈ 0.69 on a term present in every document; BM25's `log(1 + (N − df + 0.5)/(df + 0.5))` pushes it to near 0. When terms that appear in every memory (a character's name, a catchphrase) start to disturb ranking, add it as a query-side option (`idf: 'bm25'`). Do not change the default: application thresholds (minScore) are tuned to the current formula.
+
 ## 8. Acceptance cases (regressions from real sessions)
 
 1. **Anchor drift**: the story moves inn A → night market → wakes up in inn B, then 20+ more messages. The character must not place itself in A again. The state block shows "current: inn B".

@@ -26,6 +26,9 @@ export const DEFAULT_STOPWORDS: ReadonlySet<string> = new Set([
   '吗', '呢', '吧', '啊', '呀', '哦', '嗯', '这', '那', '这个', '那个', '什么', '怎么', '为什么',
   '有', '没', '没有', '不', '很', '把', '被', '对', '从', '到', '给', '让', '着', '过', '又', '还',
   '一个', '一下', '一些', '上', '下', '里', '中',
+  // zh relative time: meaningless as a search term ("昨天" today is not "昨天" next week); resolve time to a range instead
+  '今天', '昨天', '前天', '明天', '后天', '今晚', '昨晚', '明晚', '今早', '明早', '刚才', '刚刚', '现在', '最近',
+  '早上', '上午', '中午', '下午', '晚上', '半夜', '凌晨',
   // en function words
   'the', 'a', 'an', 'of', 'to', 'is', 'are', 'was', 'were', 'and', 'or', 'in', 'on', 'at', 'it',
   'this', 'that', 'what', 'did', 'do', 'does', 'i', 'you', 'he', 'she', 'they', 'we', 'me', 'my',

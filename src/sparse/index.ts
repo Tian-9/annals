@@ -29,6 +29,13 @@ export interface SearchOptions {
   boost?: (docId: string) => number;
   /** Drop hits below this score. Default 0 (drop only non-positive). */
   minScore?: number;
+  /**
+   * A document needs at least one strong match to count: a term of two or more characters, or a single
+   * character at the core tier (written on purpose). Single characters elsewhere (cut out of longer terms,
+   * lexical body text) can only add to a strong match. Without this, a sentence full of common characters
+   * ("去", "说", "买") sums enough weak hits to recall unrelated documents. Default true.
+   */
+  requireStrong?: boolean;
 }
 
 export interface Hit {
@@ -51,6 +58,7 @@ export interface SerializedSparseIndex {
  * over matched query terms of `weight(tier) * idf(term)`, then `boost(doc)`.
  */
 const HINT = tierCode('hint');
+const CORE = tierCode('core');
 
 export class SparseIndex {
   private readonly postings = new Map<string, Map<string, TierCode>>();
@@ -150,29 +158,34 @@ export class SparseIndex {
     const k = opts.k ?? 10;
     const useIdf = opts.idf ?? true;
     const minScore = opts.minScore ?? 0;
+    const requireStrong = opts.requireStrong ?? true;
     const w: Weights = { ...DEFAULT_WEIGHTS, ...opts.weights };
     const terms = typeof query === 'string'
       ? this.tok(query)
       : [...new Set(query.map((t) => normalize(t).trim()).filter(Boolean))];
     const n = this.docs.size;
-    const acc = new Map<string, { score: number; terms: string[] }>();
+    const acc = new Map<string, { score: number; terms: string[]; strong: boolean }>();
     for (const term of terms) {
       const pl = this.postings.get(term);
       if (!pl) continue;
       const idf = useIdf ? Math.log(1 + n / pl.size) : 1;
+      const long = [...term].length >= 2;
       for (const [id, code] of pl) {
         const weight = w[tierOf(code)] * idf;
+        const strong = long || code === CORE;
         const cur = acc.get(id);
         if (cur) {
           cur.score += weight;
           cur.terms.push(term);
+          cur.strong ||= strong;
         } else {
-          acc.set(id, { score: weight, terms: [term] });
+          acc.set(id, { score: weight, terms: [term], strong });
         }
       }
     }
     const hits: Hit[] = [];
-    for (const [id, { score, terms: matched }] of acc) {
+    for (const [id, { score, terms: matched, strong }] of acc) {
+      if (requireStrong && !strong) continue;
       const s = opts.boost ? score * opts.boost(id) : score;
       if (s <= minScore) continue;
       hits.push({ id, score: s, terms: matched });

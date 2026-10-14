@@ -12,10 +12,14 @@ describe('tokenize', () => {
   it('emits segmenter words and CJK bigrams, drops stopwords', () => {
     const t = tokenize('昨天半夜猫偷吃了小鱼干');
     expect(t).toContain('猫');
-    expect(t).toContain('昨天');
     expect(t).toContain('鱼干'); // bigram: ICU splits 小鱼干 into single chars
     expect(t).toContain('小鱼');
     expect(t).not.toContain('了');
+  });
+
+  it('drops relative time words: they mean a different day every day', () => {
+    const t = tokenize('昨天晚上吃了什么');
+    expect(t).not.toContain('昨天'); expect(t).not.toContain('晚上');
   });
 
   it('keeps latin words lowercased and digits', () => {

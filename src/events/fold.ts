@@ -16,8 +16,8 @@ export function fold<S, E extends AnnalsEvent = AnnalsEvent>(
 
 /**
  * Last-write-wins view: for every key, the latest event that maps to it.
- * `keyOf` returns `null` to skip an event. This is the "materialized view"
- * of the AIRP state system: key = `${entity}\u0000${attr}`.
+ * `keyOf` returns `null` to skip an event. `annals/state` builds its
+ * "current facts" view this way: key = `${entity}\u0000${attr}`.
  */
 export function latest<K, E extends AnnalsEvent = AnnalsEvent>(
   events: readonly E[],

@@ -27,9 +27,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./airp": {
-      "types": "./dist/airp/index.d.ts",
-      "import": "./dist/airp/index.js"
+    "./state": {
+      "types": "./dist/state/index.d.ts",
+      "import": "./dist/state/index.js"
     },
     "./dexie": {
       "types": "./dist/dexie/index.d.ts",

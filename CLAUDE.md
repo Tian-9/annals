@@ -2,6 +2,10 @@
 
 设计基线在 docs/DESIGN.zh.md（英文镜像 docs/DESIGN.md），改设计先改文档，两份都改。
 
+## 定位
+- annals 是通用的个人 AI 数据库。AI 角色扮演（pocketverse 小手机）是第一个测试场景，不是它的用途。
+- 测试用例、文档里的例子可以用 RP 场景。API 名字、入口名、会发给模型的说明文字（比如 JSON Schema 的 description）不许带 RP 概念。
+
 ## 跑之前
 - `npm run lint`（类型检查 + 单元测试）和 `npm run build` 必须过。
 - 测试在 Node 里跑，不开浏览器。需要浏览器行为的东西（IndexedDB）放单独入口，用 fake-indexeddb 测。

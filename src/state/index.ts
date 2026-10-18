@@ -1,18 +1,23 @@
 /**
- * AIRP profile: conventions for AI-roleplay applications built on the
- * primitives. Still no prompts and no model calls; this is the data contract
- * between an extraction call and the event log, plus the pure functions that
- * turn state events into the block an application injects.
+ * State profile: the "what is true now" convention on top of the primitives.
+ * A fact is entity + attr + value; the newest write per entity+attr wins.
+ * Still no prompts and no model calls; this is the data contract between an
+ * extraction call and the event log, plus the pure functions that turn state
+ * events into the block an application injects.
+ *
+ * 状态画像：在原语之上约定"现在什么是真的"。一条事实是 实体 + 属性 + 值，
+ * 同一 实体+属性 取最新一次写入。仍然没有 prompt、不调模型：这里只有抽取调用和
+ * 事件日志之间的数据合同，以及把状态事件渲染成注入块的纯函数。
  */
 import { latest } from '../events/fold.js';
 import type { AnnalsEvent } from '../events/types.js';
 
 export interface StatePatch {
-  /** 谁或什么："猫"、"债务#红包"、"user" */
+  /** 谁或什么："user"、"猫"、"房租" */
   entity: string;
-  /** 哪一方面："位置"、"归属"、"欠款" */
+  /** 哪一方面："住址"、"归属"、"金额" */
   attr: string;
-  /** 现在的值，一句规范句。有方向的事实写清主宾："char 欠 user 49.5r" */
+  /** 现在的值，一句规范句。有方向的事实写清主宾："user 欠 Alex 50 欧" */
   value: string;
 }
 
@@ -27,8 +32,8 @@ export const PATCHES_SCHEMA = {
     additionalProperties: false,
     required: ['entity', 'attr', 'value'],
     properties: {
-      entity: { type: 'string', description: '谁或什么：人名、物件、"债务#事由"' },
-      attr: { type: 'string', description: '哪一方面：位置、归属、生死、关系、欠款、承诺、外貌等不可逆或当前仍成立的事' },
+      entity: { type: 'string', description: '谁或什么：人名、物件、事项（同类多件用"事项#区分词"）' },
+      attr: { type: 'string', description: '哪一方面：位置、归属、关系、金额、承诺、偏好等当前仍成立或不可逆的事' },
       value: { type: 'string', description: '现在的值，一句话。有方向的写清谁对谁；不确定就写"未明确（原因）"' },
     },
   },
@@ -102,8 +107,8 @@ export interface RenderOptions {
 /**
  * Lines for the injected state block, most recently changed last so the
  * model reads the freshest fact closest to the conversation. Activity
- * eviction is by write recency, not story days: a "three months later" jump
- * must not blank the block.
+ * eviction is by write recency, not by the application clock: a long gap
+ * (a month away, a "three months later" skip) must not blank the block.
  */
 export function renderStateLines(view: ReadonlyMap<string, StateSetEvent>, opts: RenderOptions = {}): string[] {
   const limit = opts.limit ?? 20;

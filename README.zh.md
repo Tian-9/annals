@@ -25,23 +25,23 @@ type Ev =
   | AnnalsEvent<'state.set', { entity: string; attr: string; value: string }>
   | AnnalsEvent<'bag', Bag & { doc: string }>;
 
-// 1. 事件是唯一真理。at 是你自己的钟（这里是剧情 Day）。
+// 1. 事件是唯一真理。at 是你自己的钟（这里是第几天）。
 const log = new EventLog<Ev>();
 log.append({ at: 3, type: 'state.set', source: 'msg-41',
-  payload: { entity: '债务', attr: '金额', value: 'char 欠 user 49.5r' } });
+  payload: { entity: '债务#演唱会票', attr: '金额', value: 'user 欠 Alex 50 欧' } });
 log.append({ at: 3, type: 'bag', source: 'msg-41',
-  payload: { doc: 'scene-7', core: ['猫', '黑炭', '小鱼干'], related: ['偷吃', '半夜'], hint: ['零食'] } });
+  payload: { doc: 'note-7', core: ['猫', '黑炭', '小鱼干'], related: ['偷吃', '半夜'], hint: ['零食'] } });
 
 // 2. 状态是日志的纯函数。
 const view = latest(log.byType('state.set'), (e) => `${e.payload.entity}/${e.payload.attr}`);
-view.get('债务/金额')?.payload.value; // 'char 欠 user 49.5r'
+view.get('债务#演唱会票/金额')?.payload.value; // 'user 欠 Alex 50 欧'
 
 // 3. 检索：写入档位，查询时映射权重，不调模型。
 const idx = new SparseIndex();
 for (const e of log.byType('bag')) idx.add(e.payload.doc, e.payload);
-idx.search('黑炭昨天晚上吃了什么'); // [{ id: 'scene-7', score: …, terms: ['黑炭'] }]
+idx.search('黑炭昨天晚上吃了什么'); // [{ id: 'note-7', score: …, terms: ['黑炭'] }]
 
-// 4. 用户 swipe 掉了那条消息。它产生的一切一起消失。
+// 4. 用户删掉了那条消息。它产生的一切一起消失。
 log.retract('msg-41');
 ```
 
@@ -58,11 +58,13 @@ log.retract('msg-41');
 | `bagFromText` / `parseBag` / `rebuildIndex` | 纯词法基线词袋、模型输出的防呆解析、纯代码重建索引 |
 | `MemoryEventStore` / `MemoryBlobStore` | 测试和 Node 用的适配器 |
 | `annals/dexie` | `DexieEventStore` / `DexieBlobStore`：带作用域的 IndexedDB 适配器，`dexie` 是可选 peer 依赖 |
-| `annals/airp` | 角色扮演画像：`parsePatches`、`stateView`、`diffPatches`、`renderStateLines`，以及 patch 和词袋的 JSON Schema 片段 |
+| `annals/state` | 状态画像（"现在什么是真的"）：`parsePatches`、`stateView`、`diffPatches`、`renderStateLines`，以及 patch 和词袋的 JSON Schema 片段 |
 
 ## 状态
 
-v0.2：原语、Dexie 适配器、AIRP 画像，都有测试。路线图见[设计文档](docs/DESIGN.zh.md#7-路线图)。第一个用户是一个 AI 角色扮演 PWA，设计文档第 6 节写了它怎么用这些原语。
+v0.2：原语、Dexie 适配器、状态画像，都有测试。路线图见[设计文档](docs/DESIGN.zh.md#7-路线图)。
+
+annals 是通用的个人 AI 数据库。第一个测试场景是一个 AI 角色扮演 PWA（pocketverse），因为它最难：剧情跳时间、swipe 回滚、有方向的数值事实。测试用例大多取自这个场景，设计文档第 6 节写了它怎么用这些原语。
 
 ## 许可
 

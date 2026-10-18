@@ -1,3 +1,5 @@
+// Fixtures come from the first test bed, an AI-roleplay app (see DESIGN §6, §8). The library itself is general-purpose.
+// 用例取自第一个测试场景：一个 AI 角色扮演应用（见设计文档第 6、8 节）。库本身是通用的。
 import { describe, expect, it } from 'vitest';
 import { SparseIndex } from './index.js';
 

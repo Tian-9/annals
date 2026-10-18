@@ -6,15 +6,16 @@ This is the design baseline; code follows it, and design changes land here first
 
 ## 0. Positioning
 
-- **For whom**: one person, their own data, local-first, zero backend. The first application is AI roleplay (AIRP, the hard mode); the same primitives serve a personal assistant.
+- **For whom**: one person, their own data, local-first, zero backend. It is a general-purpose personal AI database: a personal assistant, a journal, notes, a companion or a roleplay app can all sit on top.
+- **First test bed**: AI roleplay (AIRP, in the pocketverse app). It is the hard mode: time skips, swiped and regenerated messages, directional numeric facts. Primitives that hold up there hold up elsewhere. RP is where annals is tested, not what it is for; its conventions live in §6, outside the library.
 - **What it is**: a library of three primitives. Event log, folded views, sparse index.
-- **What it is not**: not an agent framework, not a vector database, not a knowledge graph. There are no prompts and no model calls in here. The library does not know what a "character" or a "debt" is; that lives in the application.
+- **What it is not**: not an agent framework, not a vector database, not a knowledge graph. There are no prompts and no model calls in here. The library does not know what a "user", a "character" or a "debt" is; that lives in the application.
 
 ## 1. Principles
 
 1. **Minimal and decoupled; code as data.** Any "what is the case right now" question is answered to the model by the system. The model never has to infer it from history.
 2. **Events vs. state.** Models are good at emitting events (append-only facts) and bad at maintaining state (what the event stream implies: ownership, location, relationships, debts). State is maintained by code and injected every turn.
-3. **Events are the only truth.** Messages, the event log, character cards and manual edits are source data. Views, indexes, numeric weights and vectors are derived and can be recomputed idempotently by code.
+3. **Events are the only truth.** Messages, the event log, profile cards (a character card, in roleplay) and manual edits are source data. Views, indexes, numeric weights and vectors are derived and can be recomputed idempotently by code.
 4. **Heavy work goes to the write side.** Extraction, expansion and normalization happen offline or asynchronously. The query path stays dumb: at runtime there is only table lookup, addition and sorting.
 5. **Hard facts go through structured channels.** Directional and numeric facts (who owes whom, where a thing is, how much) get scrambled by attention. They are never delegated to similarity search or model memory.
 6. **Models classify, they do not regress.** The model picks a tier; it never emits a score. Numbers come from a discrete table in code.
@@ -27,14 +28,14 @@ This is the design baseline; code follows it, and design changes land here first
 interface AnnalsEvent<T extends string = string, P = unknown> {
   id: string;        // caller-supplied or generated
   seq: number;       // monotonic within the log, assigned by the log
-  at: number;        // the application's own clock: story day, campaign clock, wall time. The library never reads Date.now()
+  at: number;        // the application's own clock: wall time, a day counter, a story clock. The library never reads Date.now()
   type: T;           // discriminator: "state.set", "summary", "bag"
   source?: string;   // what produced it: a message id, an import batch. Retracting a source removes everything it produced
   payload: P;
 }
 ```
 
-- `append` adds; `retract(source)` removes by origin. When the user swipes, edits or deletes a message, the application calls `retract(messageId)` once and every state change, summary and bag that message produced disappears; views and index are recomputed. This is the core mechanism for staying agnostic about model output.
+- `append` adds; `retract(source)` removes by origin. When the user edits, deletes or regenerates a message (a "swipe" in roleplay), the application calls `retract(messageId)` once and every state change, summary and bag that message produced disappears; views and index are recomputed. This is the core mechanism for staying agnostic about model output.
 - `version` increments on every mutation; derived views use it as a cache key.
 - `toJSONL()` / `fromJSONL()` is the export format. One file is the whole database, readable by eye, parseable in any language, recoverable without this library.
 
@@ -43,7 +44,7 @@ interface AnnalsEvent<T extends string = string, P = unknown> {
 A view is a pure function of the log. Nothing is stored; recompute when `version` changes. Volumes are small (hundreds to a few thousand events for one person), so a full scan is sub-second and no real materialization is needed.
 
 - `fold(events, reducer, init)`: any reduction.
-- `latest(events, keyOf)`: the newest event per key. The AIRP "materialized view" is `latest` with `key = entity + attr`. Map iteration order equals recency of last write, which doubles as an activity ordering.
+- `latest(events, keyOf)`: the newest event per key. The "current facts" view in `annals/state` is `latest` with `key = entity + attr`. Map iteration order equals recency of last write, which doubles as an activity ordering.
 
 ### 2.3 Sparse index `SparseIndex`
 
@@ -81,7 +82,7 @@ The line is: **anything that needs a model to regenerate is source data; only wh
 |---|---|
 | Message text | Inverted index |
 | Event log (state changes, summaries, bag tiers) | Folded views |
-| Character cards, world settings | Weights after tier mapping |
+| Profile cards and settings (character cards, world settings) | Weights after tier mapping |
 | Manual edits, configuration | Vectors |
 
 Hence two functions that must not be merged:
@@ -98,9 +99,11 @@ Summaries and bags are model products, but they are events, carry a `source`, an
 - The Dexie / IndexedDB adapter is a separate entry point, as SQLite will be. The core stays zero-dependency.
 - In the browser the application calls `navigator.storage.persist()` at startup. Images are stored as Blobs, never base64.
 
-## 6. Application profile: how AIRP uses the primitives
+## 6. Test bed: how AIRP uses the primitives
 
-This section is an application-level convention, not part of the library. It lives here because AIRP is the first consumer and the hardest one.
+This section is an application-level convention, not part of the library. It lives here because AIRP is the first test bed and the hardest one. The state convention (6.2) has been lifted into the general `annals/state` entry; the rest (two time tracks, the attribute whitelist, the two write channels, prompt layout) are AIRP's own choices, for other applications to borrow as they see fit.
+
+The same shape in a personal assistant, for comparison: `at` is wall time; state holds facts like "user · address", "user · employer", "user owes Alex 50 EUR"; bags come from summaries of chats and notes; retraction follows message edits and deletions.
 
 ### 6.1 Time
 
@@ -161,17 +164,19 @@ Retrieval runs in code before the request, in milliseconds, on every message, wi
 ## 7. Roadmap
 
 - **v0.1 primitives**: `EventLog`, `fold` / `latest`, `SparseIndex`, tokenizer, in-memory storage, JSONL import/export. Done.
-- **v0.2 adapters**: `annals/dexie` `EventStore` / `BlobStore`; `rebuildIndex()`, `bagFromText()`, `parseBag()`; the `annals/airp` state patch contract, view and block rendering. Done.
+- **v0.2 adapters**: `annals/dexie` `EventStore` / `BlobStore`; `rebuildIndex()`, `bagFromText()`, `parseBag()`; the state patch contract, view and block rendering (shipped as `annals/airp`, renamed `annals/state` in 2026-10). Done.
 - **v0.3 AIRP profile**: state event conventions, state block rendering, relative-time parsing, as a separate entry or example; wired into pocketverse to replace MiniSearch, with `state_update` turned into incremental hard-fact writes (6.3 channel two). Done.
 - **v1 semantic lift**: bag extraction in the pipeline, tier mapping configuration, query log.
-- **v2 (deferred)**: information asymmetry (scene "present" tags + per-character knows lists, later per-character context filtering), RRF hybrid retrieval, local dense embeddings, query-log tuning.
+- **v2 (deferred)**: information asymmetry for AIRP (scene "present" tags + per-character knows lists, later per-character context filtering), RRF hybrid retrieval, local dense embeddings, query-log tuning.
 
 **Backlog: only when retrieval is still not precise enough; first collect a reproduction in the acceptance cases**
 
 - **Part of speech**: verbs and adverbs in a query (去, 说, 买, 打算) are held off today by the stopword list and the "single characters cannot make a match" rule, which does not stop two-character verbs ("打算", "觉得"). Two ways: have the model tag part of speech in the bag at extraction time (nearly free) and query with noun-like terms only; or add an optional POS filter to the tokenizer (needs a dictionary, so a separate entry; the zero-dependency core stays). Start with the write side plus a small common-verb list on the query side, and reach for a dictionary only if that is not enough.
-- **BM25-style idf**: `log(1 + N/df)` still leaves log 2 ≈ 0.69 on a term present in every document; BM25's `log(1 + (N − df + 0.5)/(df + 0.5))` pushes it to near 0. When terms that appear in every memory (a character's name, a catchphrase) start to disturb ranking, add it as a query-side option (`idf: 'bm25'`). Do not change the default: application thresholds (minScore) are tuned to the current formula.
+- **BM25-style idf**: `log(1 + N/df)` still leaves log 2 ≈ 0.69 on a term present in every document; BM25's `log(1 + (N − df + 0.5)/(df + 0.5))` pushes it to near 0. When terms that appear in every memory (the user's or a character's name, a catchphrase) start to disturb ranking, add it as a query-side option (`idf: 'bm25'`). Do not change the default: application thresholds (minScore) are tuned to the current formula.
 
 ## 8. Acceptance cases (regressions from real sessions)
+
+The scenes come from the AIRP test bed; what they test is general: a fact that moves, a directional number, retrieval through an alias, rollback, backup.
 
 1. **Anchor drift**: the story moves inn A → night market → wakes up in inn B, then 20+ more messages. The character must not place itself in A again. The state block shows "current: inn B".
 2. **Debt direction flip**: after user sends 50r → char refunds 0.5r, every later statement must be "char owes user 49.5r", never reversed. Swiping away the refund message rolls the state back automatically.
@@ -186,4 +191,4 @@ Retrieval runs in code before the request, in milliseconds, on every message, wi
 - Knowledge graphs, graph visualization, entity disambiguation. The write-side "heavy work" becomes too heavy for a single-user budget.
 - SPLADE-style sparse models that need a dedicated encoder; fine-tuning.
 - Multi-device sync. Only exported files for single-machine backup.
-- Group chats with several characters (v2's information asymmetry is single-character perspective filtering, not group chat).
+- Group roleplay with several characters (v2's information asymmetry is single-character perspective filtering, not group chat).
